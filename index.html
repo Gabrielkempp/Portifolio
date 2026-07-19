@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gabriel Roberto Kempp | Data Specialist</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #020617;
+            --card-bg: rgba(15, 23, 42, 0.7);
+            --border: rgba(255, 255, 255, 0.1);
+            --accent: #22d3ee;
+            --accent-glow: rgba(34, 211, 238, 0.3);
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; scroll-behavior: smooth; }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* UX: Barra de Progresso */
+        #progress-bar {
+            position: fixed; top: 0; left: 0; height: 4px;
+            background: linear-gradient(90deg, transparent, var(--accent));
+            width: 0%; z-index: 2000; box-shadow: 0 0 15px var(--accent);
+        }
+
+        .ambient-light {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 10% 20%, rgba(8, 51, 68, 0.3) 0%, transparent 40%),
+                        radial-gradient(circle at 90% 80%, rgba(30, 41, 59, 0.3) 0%, transparent 40%);
+            z-index: -1; pointer-events: none;
+        }
+
+        /* Background técnico: malha + gráficos fake, com presença mais marcada */
+        .data-bg {
+            position: fixed; inset: 0; z-index: -2; pointer-events: none; overflow: hidden;
+            opacity: 0.85;
+        }
+        .data-bg .grid-layer {
+            position: absolute; inset: 0;
+            background-image:
+                linear-gradient(rgba(148, 163, 184, 0.09) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(148, 163, 184, 0.09) 1px, transparent 1px);
+            background-size: 64px 64px;
+            mask-image: radial-gradient(ellipse 85% 65% at 50% 30%, black 0%, transparent 78%);
+        }
+        .data-bg svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .data-bg .chart-line {
+            fill: none; stroke: var(--accent); stroke-width: 1.6; opacity: 0.28;
+            stroke-dasharray: 6 2000; stroke-dashoffset: 0;
+            animation: draw-chart 14s ease-in-out infinite;
+        }
+        .data-bg .chart-line-2 {
+            fill: none; stroke: var(--accent); stroke-width: 1.1; opacity: 0.16;
+        }
+        .data-bg .axis-tick { stroke: rgba(148, 163, 184, 0.22); stroke-width: 1; }
+        .data-bg .axis-base { stroke: rgba(148, 163, 184, 0.16); stroke-width: 1; }
+        .data-bg .bar { fill: var(--accent); opacity: 0.14; }
+        .data-bg .node-line { stroke: var(--accent); stroke-width: 1; opacity: 0.18; }
+        .data-bg .node-dot { fill: var(--accent); opacity: 0.4; }
+        .data-bg .node-pulse {
+            fill: none; stroke: var(--accent); stroke-width: 1.2; opacity: 0.5;
+            transform-origin: center; transform-box: fill-box;
+            animation: pulse-ring 3.5s ease-out infinite;
+        }
+        .data-bg .grid-dot { fill: var(--accent); opacity: 0.5; animation: float-dot 8s ease-in-out infinite; }
+        .data-bg .label {
+            font-family: 'JetBrains Mono', monospace; font-size: 13px;
+            fill: rgba(148, 163, 184, 0.3); letter-spacing: 0.05em;
+        }
+        @keyframes draw-chart {
+            0% { stroke-dashoffset: 2000; }
+            45%, 100% { stroke-dashoffset: 0; }
+        }
+        @keyframes float-dot {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        @keyframes pulse-ring {
+            0% { r: 4; opacity: 0.5; }
+            100% { r: 22; opacity: 0; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .data-bg .chart-line { animation: none; stroke-dasharray: none; }
+            .data-bg .grid-dot, .data-bg .node-pulse { animation: none; }
+        }
+        @media (max-width: 640px) {
+            .data-bg { opacity: 0.5; }
+        }
+
+        #particle-canvas {
+            position: fixed; inset: 0; z-index: -2; pointer-events: none;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 40px; }
+
+        header {
+            height: 90px; display: flex; align-items: center;
+            position: sticky; top: 0; z-index: 1000;
+            backdrop-filter: blur(20px); border-bottom: 1px solid var(--border);
+        }
+
+        nav { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+        .logo { font-weight: 800; font-size: 1.5rem; letter-spacing: -1px; }
+        .logo span { color: var(--accent); }
+
+        .nav-links { display: flex; gap: 30px; list-style: none; }
+        .nav-links a {
+            text-decoration: none; color: var(--text-dim); font-size: 0.9rem;
+            transition: color 0.3s; position: relative; padding-bottom: 4px;
+        }
+        .nav-links a::after {
+            content: ''; position: absolute; left: 0; bottom: 0;
+            width: 0; height: 1px; background: var(--accent);
+            transition: width 0.3s ease;
+        }
+        .nav-links a:hover { color: var(--accent); }
+        .nav-links a:hover::after { width: 100%; }
+        .nav-links a.active { color: var(--accent); }
+        .nav-links a.active::after { width: 100%; }
+
+        /* Menu hamburguer (mobile) */
+        .menu-toggle {
+            display: none; flex-direction: column; justify-content: center; gap: 5px;
+            width: 40px; height: 40px; background: var(--card-bg); border: 1px solid var(--border);
+            border-radius: 8px; cursor: pointer; padding: 0; flex-shrink: 0;
+        }
+        .menu-toggle span {
+            display: block; width: 18px; height: 2px; margin: 0 auto;
+            background: var(--text-main); transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        .menu-toggle[aria-expanded="true"] span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+        .menu-toggle[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
+        .menu-toggle[aria-expanded="true"] span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+        /* Idioma Toggle */
+        .lang-toggle { display: flex; gap: 10px; }
+        .lang-btn { 
+            background: var(--card-bg); border: 1px solid var(--border);
+            width: 34px; height: 34px; padding: 0;
+            border-radius: 8px; cursor: pointer; font-size: 1.1rem; line-height: 1;
+            display: flex; align-items: center; justify-content: center;
+            transition: border-color 0.25s, transform 0.25s, filter 0.25s;
+            filter: grayscale(60%); opacity: 0.7;
+        }
+        .lang-btn.active { border-color: var(--accent); filter: grayscale(0%); opacity: 1; transform: scale(1.08); }
+        .lang-btn:hover { filter: grayscale(0%); opacity: 1; }
+        .lang-flag { width: 20px; height: 13.3px; display: block; border-radius: 2px; }
+
+        /* HERO - Foto à Esquerda */
+        .hero {
+            padding: 100px 0;
+            display: flex;
+            align-items: center;
+            gap: 60px;
+            min-height: 80vh;
+        }
+
+        .profile-side { flex: 0 0 350px; position: relative; }
+        .profile-side::before {
+            content: '';
+            position: absolute; inset: -20px;
+            background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+            filter: blur(30px);
+            z-index: -1;
+            animation: pulse-glow 4s ease-in-out infinite;
+        }
+        .profile-side img {
+            width: 350px; height: 350px; border-radius: 24px;
+            object-fit: cover; border: 1px solid var(--border);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 0.9; transform: scale(1.05); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .profile-side::before { animation: none; }
+        }
+
+        .content-side { flex: 1; }
+        .content-side h2 { font-family: 'JetBrains Mono', monospace; color: var(--accent); font-size: 1.1rem; margin-bottom: 10px; }
+        .content-side h1 { font-size: 4.5rem; font-weight: 800; line-height: 1; margin-bottom: 25px; letter-spacing: -2px; }
+        .content-side p { font-size: 1.2rem; color: var(--text-dim); margin-bottom: 35px; max-width: 600px; }
+
+        /* Sections */
+        section { padding: 100px 0; border-bottom: 1px solid var(--border); scroll-margin-top: 90px; }
+        .hero { scroll-margin-top: 90px; }
+        .section-header { margin-bottom: 50px; }
+        .section-title { font-size: 2rem; font-weight: 800; margin-bottom: 10px; }
+        .section-tag { font-family: 'JetBrains Mono', monospace; color: var(--accent); font-size: 0.8rem; text-transform: uppercase; }
+
+        /* Experience & Education Layout */
+        .glass-card {
+            background: var(--card-bg); backdrop-filter: blur(12px);
+            border: 1px solid var(--border); border-radius: 24px; padding: 40px;
+            margin-bottom: 24px; transition: border-color 0.4s;
+            position: relative; overflow: hidden;
+        }
+        .glass-card::before {
+            content: '';
+            position: absolute; top: 0; left: -60%; width: 45%; height: 100%;
+            background: linear-gradient(115deg, transparent, rgba(34, 211, 238, 0.14), transparent);
+            transform: skewX(-15deg);
+            transition: left 0.85s ease;
+            pointer-events: none;
+        }
+        .glass-card:hover { border-color: var(--accent); }
+        .glass-card:hover::before { left: 130%; }
+
+        /* Combinado com maior especificidade: evita conflito com .reveal no transform */
+        /* Movimento 3D só nos cards pequenos (Educação e Skills) — cards grandes ficam parados */
+        .card-tilt.reveal.visible {
+            transition: border-color 0.4s, transform 0.15s ease-out;
+            transform: perspective(900px) rotateX(var(--rot-x, 0deg)) rotateY(var(--rot-y, 0deg));
+        }
+        .card-tilt.reveal.visible:hover {
+            transform: perspective(900px) rotateX(var(--rot-x, 0deg)) rotateY(var(--rot-y, 0deg)) translateY(-5px);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .glass-card, .glass-card.reveal.visible, .glass-card.reveal.visible:hover {
+                transform: none !important; transition: border-color 0.4s;
+            }
+        }
+
+        .item-row { display: grid; grid-template-columns: 250px 1fr; gap: 30px; margin-bottom: 40px; }
+        .item-date { font-family: 'JetBrains Mono', monospace; color: var(--text-dim); font-size: 0.9rem; }
+        .item-location { display: block; font-family: 'JetBrains Mono', monospace; color: var(--text-dim); font-size: 0.78rem; opacity: 0.6; margin-top: 4px; }
+        .item-info h3 { font-size: 1.4rem; margin-bottom: 8px; }
+        .item-info .company { color: var(--accent); font-weight: 700; display: block; margin-bottom: 12px; }
+        .company-tag { opacity: 0.75; font-weight: 600; }
+        .en-active .company-tag[lang="en"] { display: inline; }
+        .item-info ul { list-style: none; color: var(--text-dim); }
+        .item-info li { margin-bottom: 10px; position: relative; padding-left: 20px; }
+        .item-info li::before { content: '▹'; position: absolute; left: 0; color: var(--accent); }
+        .exp-subhead {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; text-transform: uppercase;
+            letter-spacing: 0.08em; color: var(--accent); opacity: 0.85;
+            margin: 18px 0 10px;
+        }
+        .exp-subhead:first-of-type { margin-top: 6px; }
+
+        /* Perfil Profissional */
+        .profile-text p { color: var(--text-dim); font-size: 1.05rem; margin-bottom: 20px; max-width: 720px; }
+        .profile-text p:last-child { margin-bottom: 0; }
+
+        /* Projects */
+        .project-card { display: flex; flex-direction: column; }
+        .project-header { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 18px; }
+        .project-icon {
+            flex-shrink: 0; width: 44px; height: 44px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(34, 211, 238, 0.1); color: var(--accent);
+            border: 1px solid var(--border);
+        }
+        .project-icon svg { width: 20px; height: 20px; }
+        .project-header h3 { font-size: 1.25rem; margin-bottom: 6px; }
+        .project-tag {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;
+            color: var(--text-dim); letter-spacing: 0.02em;
+        }
+        .project-card > p { color: var(--text-dim); margin-bottom: 22px; }
+        .project-embed {
+            position: relative; width: 100%; aspect-ratio: 16 / 10;
+            border-radius: 14px; overflow: hidden; border: 1px solid var(--border);
+            margin-bottom: 20px; background: rgba(255, 255, 255, 0.02);
+        }
+        .project-embed iframe { width: 100%; height: 100%; border: 0; display: block; }
+        .project-link { align-self: flex-start; padding: 12px 26px; font-size: 0.9rem; }
+
+        @media (max-width: 640px) {
+            .project-embed { aspect-ratio: 4 / 3; }
+        }
+
+        /* Skills Grid */
+        .skills-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .skill-box h4 { color: var(--accent); margin-bottom: 15px; font-family: 'JetBrains Mono', monospace; }
+
+        /* Footer & Toast */
+        footer { padding: 80px 0; text-align: center; }
+        #toast {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: var(--accent); color: var(--bg); padding: 12px 30px;
+            border-radius: 50px; font-weight: 700; display: none; z-index: 3000;
+        }
+
+        .btn {
+            background: var(--accent); color: var(--bg); padding: 15px 35px;
+            border-radius: 12px; text-decoration: none; font-weight: 700;
+            display: inline-block; transition: 0.3s; border: none; cursor: pointer;
+            font-family: inherit; font-size: 1rem; line-height: 1.2;
+            box-sizing: border-box; text-align: center; vertical-align: middle;
+        }
+        .btn-group { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; }
+        .btn-group .btn { min-width: 210px; }
+        .btn-outline { background: transparent; color: var(--text-main); border: 1px solid var(--border); }
+        .btn:hover { box-shadow: 0 0 25px var(--accent-glow); transform: scale(1.02); }
+
+        /* Multi-language Visibility */
+        [lang="en"] { display: none; }
+        .en-active [lang="pt-br"] { display: none; }
+        .en-active [lang="en"] { display: block; }
+
+        /* Revelação suave ao rolar */
+        .reveal {
+            opacity: 0; transform: translateY(24px);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+        }
+        .reveal.visible { opacity: 1; transform: translateY(0); }
+
+        @media (prefers-reduced-motion: reduce) {
+            .reveal { opacity: 1; transform: none; transition: none; }
+        }
+
+        :focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 3px;
+        }
+
+        @media (max-width: 968px) {
+            .hero { flex-direction: column; text-align: center; padding: 40px 0; }
+            .content-side h1 { font-size: 3rem; }
+            .content-side p { max-width: 100%; margin-left: auto; margin-right: auto; }
+            .item-row { grid-template-columns: 1fr; gap: 14px; margin-bottom: 32px; }
+            .item-location { margin-top: 2px; }
+            .profile-text p { max-width: 100%; }
+            .profile-side img { width: 280px; height: 280px; }
+            .btn-group { justify-content: center; }
+            .container { padding: 0 24px; }
+            section { padding: 80px 0; }
+
+            .menu-toggle { display: flex; }
+            .nav-links {
+                display: flex; flex-direction: column; gap: 4px;
+                position: absolute; top: 90px; left: 0; right: 0;
+                background: rgba(2, 6, 23, 0.97); backdrop-filter: blur(20px);
+                border-bottom: 1px solid var(--border);
+                padding: 10px 24px 20px;
+                max-height: 0; overflow: hidden; opacity: 0;
+                transition: max-height 0.35s ease, opacity 0.3s ease, padding 0.35s ease;
+            }
+            .nav-links.open { max-height: 400px; opacity: 1; padding: 20px 24px 28px; }
+            .nav-links li { width: 100%; }
+            .nav-links a { display: block; padding: 14px 0; font-size: 1.05rem; border-bottom: 1px solid var(--border); }
+            .nav-links a::after { display: none; }
+
+            .projects-grid { grid-template-columns: 1fr !important; }
+        }
+
+        @media (max-width: 640px) {
+            .content-side h1 { font-size: 2.3rem; }
+            section { padding: 64px 0; }
+            .glass-card { padding: 28px 22px; }
+            .item-row { margin-bottom: 28px; }
+            .exp-subhead { margin: 16px 0 8px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="progress-bar"></div>
+    <div id="toast">
+        <span lang="pt-br">E-mail copiado com sucesso!</span>
+        <span lang="en">Email copied to clipboard!</span>
+    </div>
+    <div class="data-bg" aria-hidden="true">
+        <div class="grid-layer"></div>
+        <svg viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
+            <!-- linha secundária (fantasma) -->
+            <path class="chart-line-2" d="M0,540 L80,515 L160,530 L240,490 L320,505 L400,470 L480,490 L560,450 L640,470 L720,430 L800,450 L880,415 L960,435 L1040,405 L1120,420 L1200,400" />
+
+            <!-- linha principal + eixo com marcações -->
+            <line class="axis-base" x1="40" y1="330" x2="1160" y2="330" />
+            <line class="axis-tick" x1="200" y1="325" x2="200" y2="335" />
+            <line class="axis-tick" x1="400" y1="325" x2="400" y2="335" />
+            <line class="axis-tick" x1="600" y1="325" x2="600" y2="335" />
+            <line class="axis-tick" x1="800" y1="325" x2="800" y2="335" />
+            <line class="axis-tick" x1="1000" y1="325" x2="1000" y2="335" />
+            <path class="chart-line" d="M40,290 L120,255 L200,270 L280,205 L360,225 L440,170 L520,190 L600,125 L680,145 L760,95 L840,115 L920,65 L1000,85 L1080,45 L1160,70" />
+            <text class="label" x="40" y="360">Q1</text>
+            <text class="label" x="440" y="360">Q2</text>
+            <text class="label" x="840" y="360">Q3</text>
+            <text class="label" x="1120" y="360">Q4</text>
+
+            <!-- mini gráfico de barras, canto inferior esquerdo -->
+            <g transform="translate(70, 660)">
+                <rect class="bar" x="0"   y="30"  width="20" height="60" />
+                <rect class="bar" x="30"  y="10"  width="20" height="80" />
+                <rect class="bar" x="60"  y="45"  width="20" height="45" />
+                <rect class="bar" x="90"  y="0"   width="20" height="90" />
+                <rect class="bar" x="120" y="55"  width="20" height="35" />
+                <rect class="bar" x="150" y="20"  width="20" height="70" />
+                <rect class="bar" x="180" y="35"  width="20" height="55" />
+                <line class="axis-base" x1="-10" y1="92" x2="212" y2="92" />
+            </g>
+
+            <!-- grafo de nós conectados, canto superior direito -->
+            <g>
+                <line class="node-line" x1="960" y1="120" x2="1050" y2="70" />
+                <line class="node-line" x1="960" y1="120" x2="1040" y2="170" />
+                <line class="node-line" x1="1050" y1="70" x2="1140" y2="100" />
+                <line class="node-line" x1="1040" y1="170" x2="1140" y2="100" />
+                <line class="node-line" x1="1040" y1="170" x2="1000" y2="230" />
+                <circle class="node-dot" cx="960" cy="120" r="4" />
+                <circle class="node-dot" cx="1050" cy="70" r="3.5" />
+                <circle class="node-dot" cx="1140" cy="100" r="4.5" />
+                <circle class="node-dot" cx="1040" cy="170" r="3.5" />
+                <circle class="node-dot" cx="1000" cy="230" r="3" />
+                <circle class="node-pulse" cx="1140" cy="100" r="4" />
+            </g>
+
+            <!-- pontos flutuantes -->
+            <circle class="grid-dot" cx="280" cy="205" r="3" style="animation-delay:0s" />
+            <circle class="grid-dot" cx="520" cy="190" r="3" style="animation-delay:1.2s" />
+            <circle class="grid-dot" cx="760" cy="95" r="3" style="animation-delay:2.4s" />
+            <circle class="grid-dot" cx="1000" cy="85" r="3" style="animation-delay:0.6s" />
+            <circle class="grid-dot" cx="160" cy="530" r="2.5" style="animation-delay:1.8s" />
+            <circle class="grid-dot" cx="640" cy="470" r="2.5" style="animation-delay:3s" />
+            <circle class="grid-dot" cx="200" cy="720" r="2.5" style="animation-delay:2s" />
+        </svg>
+    </div>
+    <canvas id="particle-canvas" aria-hidden="true"></canvas>
+    <div class="ambient-light"></div>
+
+    <header>
+        <div class="container" style="width: 100%;">
+            <nav>
+                <div class="logo">GABRIEL<span>.</span>KEMPP</div>
+                <ul class="nav-links" id="navLinks">
+                    <li><a href="#about" data-pt="Sobre" data-en="About">Sobre</a></li>
+                    <li><a href="#perfil" data-pt="Perfil" data-en="Profile">Perfil</a></li>
+                    <li><a href="#experience" data-pt="Experiência" data-en="Experience">Experiência</a></li>
+                    <li><a href="#skills" data-pt="Habilidades" data-en="Skills">Habilidades</a></li>
+                    <li><a href="#contact" data-pt="Contato" data-en="Contact">Contato</a></li>
+                </ul>
+                <div class="lang-toggle">
+                    <button class="lang-btn active" onclick="setLang('pt')" title="Português" aria-label="Português">
+                        <svg class="lang-flag" viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true">
+                            <rect width="60" height="40" rx="3" fill="#009C3B"/>
+                            <polygon points="30,4 56,20 30,36 4,20" fill="#FFDF00"/>
+                            <circle cx="30" cy="20" r="10.5" fill="#002776"/>
+                            <path d="M 20 16 A 15 15 0 0 1 40 24" stroke="#FFFFFF" stroke-width="1.6" fill="none"/>
+                        </svg>
+                    </button>
+                    <button class="lang-btn" onclick="setLang('en')" title="English" aria-label="English">
+                        <svg class="lang-flag" viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true">
+                            <rect width="60" height="40" rx="3" fill="#FFFFFF"/>
+                            <g clip-path="url(#usClip)">
+                                <rect y="0" width="60" height="3.08" fill="#B22234"/>
+                                <rect y="6.15" width="60" height="3.08" fill="#B22234"/>
+                                <rect y="12.31" width="60" height="3.08" fill="#B22234"/>
+                                <rect y="18.46" width="60" height="3.08" fill="#B22234"/>
+                                <rect y="24.62" width="60" height="3.08" fill="#B22234"/>
+                                <rect y="30.77" width="60" height="3.08" fill="#B22234"/>
+                                <rect y="36.92" width="60" height="3.08" fill="#B22234"/>
+                                <rect x="0" y="0" width="26" height="21.5" fill="#3C3B6E"/>
+                                <g fill="#FFFFFF">
+                                    <circle cx="4" cy="3.5" r="1"/><circle cx="9" cy="3.5" r="1"/><circle cx="14" cy="3.5" r="1"/><circle cx="19" cy="3.5" r="1"/><circle cx="24" cy="3.5" r="1"/>
+                                    <circle cx="6.5" cy="7" r="1"/><circle cx="11.5" cy="7" r="1"/><circle cx="16.5" cy="7" r="1"/><circle cx="21.5" cy="7" r="1"/>
+                                    <circle cx="4" cy="10.5" r="1"/><circle cx="9" cy="10.5" r="1"/><circle cx="14" cy="10.5" r="1"/><circle cx="19" cy="10.5" r="1"/><circle cx="24" cy="10.5" r="1"/>
+                                    <circle cx="6.5" cy="14" r="1"/><circle cx="11.5" cy="14" r="1"/><circle cx="16.5" cy="14" r="1"/><circle cx="21.5" cy="14" r="1"/>
+                                    <circle cx="4" cy="17.5" r="1"/><circle cx="9" cy="17.5" r="1"/><circle cx="14" cy="17.5" r="1"/><circle cx="19" cy="17.5" r="1"/><circle cx="24" cy="17.5" r="1"/>
+                                </g>
+                            </g>
+                            <defs>
+                                <clipPath id="usClip"><rect width="60" height="40" rx="3"/></clipPath>
+                            </defs>
+                        </svg>
+                    </button>
+                </div>
+                <button class="menu-toggle" id="menuToggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="navLinks">
+                    <span></span><span></span><span></span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        
+        <!-- HERO -->
+        <section class="hero" id="about">
+            <div class="profile-side">
+                <img src="foto.jpg" alt="Gabriel Roberto Kempp">
+            </div>
+            <div class="content-side">
+                <h2 lang="pt-br">Analista de Business Intelligence</h2>
+                <h2 lang="en">Business Intelligence Analyst</h2>
+                <h1>Gabriel Roberto Kempp</h1>
+                <p lang="pt-br"><b>Analista de Business Intelligence especializado em Power BI, SQL, Python e DAX</b>. Desenvolvo soluções analíticas que conectam dados, processos e estratégia para gerar eficiência operacional e apoiar decisões mais inteligentes.</p>
+                <p lang="en">Business Intelligence Analyst specialized in Power BI, SQL, Python, and DAX. I build analytical solutions that connect data, business processes, and strategy to improve operational efficiency and support smarter decision-making.</p>
+                <div class="btn-group">
+                    <button class="btn btn-outline" lang="pt-br" onclick="copyMail()">Copiar E-mail</button><button class="btn btn-outline" lang="en" onclick="copyMail()">Copy Email</button>
+                    <a href="https://www.linkedin.com/in/gabriel-roberto-kempp/" target="_blank" class="btn btn-outline">LinkedIn</a>
+                    <a href="https://wa.me/5541995046032" target="_blank" class="btn btn-outline">WhatsApp</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- PERFIL -->
+        <section id="perfil">
+            <div class="section-header reveal">
+                <span class="section-tag" lang="pt-br">Quem sou eu</span>
+                <span class="section-tag" lang="en">Who I am</span>
+                <h2 class="section-title" lang="pt-br">Perfil Profissional</h2>
+                <h2 class="section-title" lang="en">Professional Profile</h2>
+            </div>
+            <div class="glass-card reveal profile-text">
+                <p lang="pt-br">Ao longo da minha trajetória, atuei na construção de soluções de Business Intelligence para áreas operacionais, financeiras e estratégicas, sempre com foco em <B>transformar dados em informações úteis para a tomada de decisão.</b></p>
+                <p lang="pt-br">Minha experiência envolve desde a integração e <b>modelagem de dados</b> até o <b>desenvolvimento de dashboards executivos, automações de processos e definição de indicadores de performance (KPIs)</b>. Gosto de entender como o negócio funciona antes de pensar na tecnologia, porque acredito que dados só geram valor quando ajudam pessoas a tomar melhores decisões.</p>
+                <p lang="pt-br">Atualmente, sigo aprofundando meus conhecimentos em Engenharia de Dados e Arquitetura de Soluções para desenvolver aplicações cada vez mais escaláveis e orientadas por dados.</p>
+                <p lang="en">Throughout my career, I have developed Business Intelligence solutions for operational, financial, and strategic teams, always focused on transforming data into meaningful insights that drive <b>better business decisions.</b></p>
+                <p lang="en">My experience covers the entire analytics lifecycle, from data integration and modeling to <b>executive dashboards, process automation, and KPI development</b>. I believe technology should solve real business problems, which is why I always strive to understand the operation before designing the solution.</p>
+                <p lang="en">Currently, I am expanding my expertise in Data Engineering and Solution Architecture to build scalable, data-driven systems that create long-term business value.</p>
+            </div>
+        </section>
+        <section id="experience">
+            <div class="section-header reveal">
+                <span class="section-tag" lang="pt-br">Carreira</span>
+                <span class="section-tag" lang="en">Career</span>
+                <h2 class="section-title" lang="pt-br">Experiências Profissionais</h2>
+                <h2 class="section-title" lang="en">Work Experience</h2>
+            </div>
+
+            <div class="glass-card reveal">
+                <!-- CEABS - Bloco único: progressão interna Analista de Dados -> BI -->
+                <div class="item-row">
+                    <div class="item-date">11/2025 — ATUAL<span class="item-location">Curitiba, PR</span></div>
+                    <div class="item-info">
+                        <span class="company">CEABS SERVIÇOS</span>
+                        <h3 lang="pt-br">Analista de Business Intelligence</h3>
+                        <h3 lang="en">Business Intelligence Analyst</h3>
+                        <p lang="pt-br" style="color: var(--text-dim); font-size: 0.85rem; opacity: 0.85; margin: -4px 0 14px;"><b>Analista de Dados → Analista de Business Intelligence</b> — promoção interna em 04/2026</p>
+                        <p lang="en" style="color: var(--text-dim); font-size: 0.85rem; opacity: 0.85; margin: -4px 0 14px;"><b>Data Analyst → Business Intelligence Analyst</b> — internal promotion in 04/2026</p>
+
+                        <h4 class="exp-subhead" lang="pt-br">Responsabilidades</h4>
+                        <h4 class="exp-subhead" lang="en">Responsibilities</h4>
+                        <ul lang="pt-br">
+                            <li>Desenvolvimento de análises operacionais, relatórios gerenciais e indicadores utilizando <b>Power BI</b> e Excel.</li>
+                            <li>Tratamento e validação de dados para suporte às decisões do negócio.</li>
+                            <li>Desenvolvimento de soluções de Business Intelligence com <b>SQL, Power BI, DAX</b>, Excel e Power Automate.</li>
+                            <li>Definição e monitoramento de <b>KPIs estratégicos e operacionais</b>.</li>
+                            <li>Desenvolvimento de dashboards executivos para acompanhamento da performance da operação.</li>
+                            <li>Condução de análises estratégicas e apresentação de resultados e recomendações a stakeholders executivos.</li>
+                            <li>Estruturação de automações para monitoramento e otimização de processos.</li>
+                        </ul>
+                        <ul lang="en">
+                            <li>Development of operational analyses, management reports, and indicators using <b>Power BI</b> and Excel.</li>
+                            <li>Data processing and validation to support business decisions.</li>
+                            <li>Development of Business Intelligence solutions using <b>SQL, Power BI, DAX</b>, Excel, and Power Automate.</li>
+                            <li>Definition and monitoring of <b>strategic and operational KPIs</b>.</li>
+                            <li>Development of executive dashboards to track operational performance.</li>
+                            <li>Strategic analysis and presentation of results and recommendations to executive stakeholders.</li>
+                            <li>Structuring automations to monitor and optimize processes.</li>
+                        </ul>
+
+                        <h4 class="exp-subhead" lang="pt-br">Resultados</h4>
+                        <h4 class="exp-subhead" lang="en">Results</h4>
+                        <ul lang="pt-br">
+                            <li>Desenvolvimento de funil operacional, consolidando os indicadores da operação em uma visão única e confiável para a tomada de decisão.</li>
+                            <li>Redução de aproximadamente <b>10% nos custos de deslocamento</b> por meio da identificação antecipada de Ordens de Serviço com potencial de impacto financeiro.</li>
+                            <li>Consolidação da cultura data-driven, entregando informações estratégicas para acionistas, CEO, diretoria e equipes operacionais.</li>
+                            <li>Geração de insights para planos de ação de curto e longo prazo, contribuindo para ganhos de eficiência operacional.</li>
+                            <li><b>Promoção interna de Analista de Dados para Analista de Business Intelligence (04/2026)</b>, reconhecimento pela entrega técnica consistente e visão estratégica.</li>
+                        </ul>
+                        <ul lang="en">
+                            <li>Built an operational funnel, consolidating operational indicators into a single, reliable view for decision-making.</li>
+                            <li>Reduced travel costs by approximately <b>10%</b> through early identification of service orders with financial impact potential.</li>
+                            <li>Strengthened a data-driven culture, delivering strategic information to shareholders, the CEO, and operational teams.</li>
+                            <li>Generated insights for short- and long-term action plans, contributing to operational efficiency gains.</li>
+                            <li><b>Internal promotion from Data Analyst to Business Intelligence Analyst (04/2026)</b>, in recognition of consistent technical delivery and strategic vision.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- COMPASSE -->
+                <div class="item-row">
+                    <div class="item-date">01/2025 — 10/2025<span class="item-location">Curitiba, PR</span></div>
+                    <div class="item-info">
+                        <span class="company">COMPASSE</span>
+                        <h3 lang="pt-br">Analista de Dados | BI</h3>
+                        <h3 lang="en">Data Analyst | BI</h3>
+
+                        <h4 class="exp-subhead" lang="pt-br">Responsabilidades</h4>
+                        <h4 class="exp-subhead" lang="en">Responsibilities</h4>
+                        <ul lang="pt-br">
+                            <li><b>Estruturação da área de Business Intelligence</b>.</li>
+                            <li>Desenvolvimento de dashboards para as áreas financeira, comercial e operacional em Power BI.</li>
+                            <li>Automação de processos e rotinas utilizando <b>Python, Power BI, SQL</b> e Excel.</li>
+                            <li>Consolidação e integração de dados para suporte analítico.</li>
+                        </ul>
+                        <ul lang="en">
+                            <li><b>Structured the Business Intelligence area</b>.</li>
+                            <li>Developed dashboards for the financial, commercial, and operational areas in Power BI.</li>
+                            <li>Automated processes and routines using <b>Python, Power BI, SQL</b>, and Excel.</li>
+                            <li>Consolidated and integrated data to support analytics.</li>
+                        </ul>
+
+                        <h4 class="exp-subhead" lang="pt-br">Resultados</h4>
+                        <h4 class="exp-subhead" lang="en">Results</h4>
+                        <ul lang="pt-br">
+                            <li><b>Consolidação de dados descentralizados</b> em uma base analítica unificada.</li>
+                            <li>Ampliação da visibilidade dos indicadores financeiros, comerciais e operacionais.</li>
+                            <li>Redução de esforços operacionais por meio da automação de processos.</li>
+                            <li>Aumento da qualidade dos dados e agilidade na geração de insights para tomada de decisão.</li>
+                        </ul>
+                        <ul lang="en">
+                            <li><b>Consolidated decentralized data</b> into a unified analytical base.</li>
+                            <li>Expanded visibility of financial, commercial, and operational indicators.</li>
+                            <li>Reduced operational effort through process automation.</li>
+                            <li>Improved data quality and sped up insight generation for decision-making.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- AGRIWEST -->
+                <div class="item-row">
+                    <div class="item-date">11/2024 — 06/2025</div>
+                    <div class="item-info">
+                        <span class="company">AGRIWEST — AGRO 5.0 <span class="company-tag" lang="pt-br">(Consultoria paralela)</span><span class="company-tag" lang="en">(Side consulting)</span></span>
+                        <h3 lang="pt-br">Analista de Dados | Data Viz</h3>
+                        <h3 lang="en">Data Analyst | Data Viz</h3>
+
+                        <h4 class="exp-subhead" lang="pt-br">Responsabilidades</h4>
+                        <h4 class="exp-subhead" lang="en">Responsibilities</h4>
+                        <ul lang="pt-br">
+                            <li>Desenvolvimento de plataforma analítica integrada utilizando <b>Streamlit</b>.</li>
+                            <li>Criação de dashboards financeiros, produtivos e industriais.</li>
+                            <li>Automação da coleta, tratamento e visualização de dados com <b>Python, Pandas</b> e Google Sheets API.</li>
+                            <li>Integração de dados e indicadores para acompanhamento operacional.</li>
+                        </ul>
+                        <ul lang="en">
+                            <li>Developed an integrated analytics platform using <b>Streamlit</b>.</li>
+                            <li>Created financial, production, and industrial dashboards.</li>
+                            <li>Automated data collection, processing, and visualization with <b>Python, Pandas</b>, and the Google Sheets API.</li>
+                            <li>Integrated data and indicators for operational tracking.</li>
+                        </ul>
+
+                        <h4 class="exp-subhead" lang="pt-br">Resultados</h4>
+                        <h4 class="exp-subhead" lang="en">Results</h4>
+                        <ul lang="pt-br">
+                            <li><b>Transformação de controles manuais em uma plataforma analítica integrada.</b></li>
+                            <li>Ampliação da visibilidade operacional e financeira das produções de melado e açúcar.</li>
+                            <li>Apoio à tomada de decisão em tempo real com indicadores consolidados.</li>
+                            <li>Melhoria da análise de rentabilidade e da gestão de custos por meio da automação.</li>
+                        </ul>
+                        <ul lang="en">
+                            <li><b>Transformed manual controls into an integrated analytics platform.</b></li>
+                            <li>Expanded operational and financial visibility across molasses and sugar production.</li>
+                            <li>Supported real-time decision-making with consolidated indicators.</li>
+                            <li>Improved profitability analysis and cost management through automation.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- HYBRID -->
+                <div class="item-row" style="border: none; margin-bottom: 0;">
+                    <div class="item-date">11/2023 — 11/2024<span class="item-location">São Paulo, Brasil</span></div>
+                    <div class="item-info">
+                        <span class="company">HYBRID DIGITAL SOLUTIONS</span>
+                        <h3 lang="pt-br">Analista de Dados</h3>
+                        <h3 lang="en">Data Analyst</h3>
+
+                        <h4 class="exp-subhead" lang="pt-br">Responsabilidades</h4>
+                        <h4 class="exp-subhead" lang="en">Responsibilities</h4>
+                        <ul lang="pt-br">
+                            <li>Desenvolvimento de soluções de dados e automação de processos.</li>
+                            <li>Criação de dashboards financeiros e operacionais com Power BI, Streamlit e Plotly.</li>
+                            <li>Automação da extração, tratamento e disponibilização de dados com Python.</li>
+                            <li>Desenvolvimento e implantação de aplicações com <b>FastAPI, Docker</b> e VPS.</li>
+                        </ul>
+                        <ul lang="en">
+                            <li>Developed data solutions and process automation.</li>
+                            <li>Created financial and operational dashboards with Power BI, Streamlit, and Plotly.</li>
+                            <li>Automated data extraction, processing, and delivery using Python.</li>
+                            <li>Developed and deployed applications using <b>FastAPI, Docker</b>, and a VPS.</li>
+                        </ul>
+
+                        <h4 class="exp-subhead" lang="pt-br">Resultados</h4>
+                        <h4 class="exp-subhead" lang="en">Results</h4>
+                        <ul lang="pt-br">
+                            <li><b>Transformação de processos manuais em fluxos automatizados e escaláveis.</b></li>
+                            <li>Redução de retrabalho e aumento da eficiência operacional.</li>
+                            <li>Ampliação da visibilidade gerencial por meio de dashboards e indicadores.</li>
+                            <li>Suporte à tomada de decisão com dados mais confiáveis e acessíveis.</li>
+                        </ul>
+                        <ul lang="en">
+                            <li><b>Transformed manual processes into automated, scalable workflows.</b></li>
+                            <li>Reduced rework and increased operational efficiency.</li>
+                            <li>Expanded management visibility through dashboards and indicators.</li>
+                            <li>Supported decision-making with more reliable and accessible data.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- EDUCATION -->
+        <section id="education">
+            <div class="section-header reveal">
+                <span class="section-tag" lang="pt-br">Acadêmico</span>
+                <span class="section-tag" lang="en">Academic</span>
+                <h2 class="section-title" lang="pt-br">Formação Acadêmica</h2>
+                <h2 class="section-title" lang="en">Education</h2>
+            </div>
+            <div class="grid-3" style="display: grid; grid-template-columns: 1fr; gap: 20px;">
+                <div class="glass-card reveal card-tilt">
+                    <span class="item-date">2026 — 2027</span>
+                    <h3 style="margin-top: 10px;">Pós-Graduação Engenharia de Dados e I.A</h3>
+                    <p style="color: var(--accent);">Anhanguera</p>
+                </div>
+                <div class="glass-card reveal card-tilt">
+                    <span class="item-date">2023 — 2025</span>
+                    <h3 style="margin-top: 10px;">Superior Tecnologia em ADS</h3>
+                    <p style="color: var(--accent);">Uninter</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SKILLS -->
+        <section id="skills">
+            <div class="section-header reveal">
+                <span class="section-tag" lang="pt-br">Tecnologias</span>
+                <span class="section-tag" lang="en">Stack</span>
+                <h2 class="section-title" lang="pt-br">Conhecimentos & Tecnologias</h2>
+                <h2 class="section-title" lang="en">Knowledge & Technologies</h2>
+            </div>
+            <div class="skills-container">
+                <div class="glass-card skill-box reveal card-tilt">
+                    <h4>Business Intelligence</h4>
+                    <p lang="pt-br">Power BI, DAX, Dashboards Estratégicos, KPIs, Data Visualization.</p>
+                    <p lang="en">Power BI, DAX, Strategic Dashboards, KPIs, Data Visualization.</p>
+                </div>
+                <div class="glass-card skill-box reveal card-tilt">
+                    <h4 lang="pt-br">Dados</h4>
+                    <h4 lang="en">Data</h4>
+                    <p lang="pt-br">SQL, Modelagem de Dados, ETL, Análise de Dados, Pandas.</p>
+                    <p lang="en">SQL, Data Modeling, ETL, Data Analysis, Pandas.</p>
+                </div>
+                <div class="glass-card skill-box reveal card-tilt">
+                    <h4 lang="pt-br">Ferramentas & Dev</h4>
+                    <h4 lang="en">Tools & Dev</h4>
+                    <p lang="pt-br">Python, Docker, APIs, FastAPI, Streamlit, Excel Avançado.</p>
+                    <p lang="en">Python, Docker, APIs, FastAPI, Streamlit, Advanced Excel.</p>
+                </div>
+                <div class="glass-card skill-box reveal card-tilt">
+                    <h4 lang="pt-br">Idiomas</h4>
+                    <h4 lang="en">Languages</h4>
+                    <p lang="pt-br">Inglês: Intermediário.</p>
+                    <p lang="en">English: Intermediate.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- PROJECTS -->
+        <section id="projects">
+            <div class="section-header reveal">
+                <span class="section-tag" lang="pt-br">Portfólio</span>
+                <span class="section-tag" lang="en">Portfolio</span>
+                <h2 class="section-title" lang="pt-br">Projetos em Destaque</h2>
+                <h2 class="section-title" lang="en">Featured Projects</h2>
+            </div>
+            <div class="projects-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+
+                <article class="glass-card reveal project-card">
+                    <div class="project-header">
+                        <span class="project-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 20V10M12 20V4M20 20V14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </span>
+                        <div>
+                            <h3 lang="pt-br">Dashboard de Operações</h3>
+                            <h3 lang="en">Operations Dashboard</h3>
+                            <span class="project-tag" lang="pt-br">Power BI · DAX · KPIs Operacionais</span>
+                            <span class="project-tag" lang="en">Power BI · DAX · Operational KPIs</span>
+                        </div>
+                    </div>
+                    <p lang="pt-br">Painel desenvolvido para uma empresa de restituição tributária, consolidando indicadores operacionais em uma visão única para apoiar a tomada de decisão — do acompanhamento de Ordens de Serviço à identificação antecipada de custos de deslocamento.</p>
+                    <p lang="en">Dashboard built for a tax-refund company, consolidating operational indicators into a single view to support decision-making — from service order tracking to early identification of field operation costs.</p>
+                    <div class="project-embed">
+                        <iframe
+                            src="https://app.powerbi.com/view?r=eyJrIjoiMWJhZGRkNzEtYzJhYi00YjRmLTg5MjUtZDU0Njg3OWUzYzdkIiwidCI6IjAwZDZjODdkLTFmZmQtNGZiNi04OWEzLTY2MjExM2RlYTFlZCJ9"
+                            title="Dashboard de Operações - Restituição Tributária"
+                            loading="lazy"
+                            allowfullscreen>
+                        </iframe>
+                    </div>
+                    <a class="btn btn-outline project-link" href="https://app.powerbi.com/view?r=eyJrIjoiMWJhZGRkNzEtYzJhYi00YjRmLTg5MjUtZDU0Njg3OWUzYzdkIiwidCI6IjAwZDZjODdkLTFmZmQtNGZiNi04OWEzLTY2MjExM2RlYTFlZCJ9" target="_blank" rel="noopener">
+                        <span lang="pt-br">Abrir em tela cheia ↗</span>
+                        <span lang="en">Open full screen ↗</span>
+                    </a>
+                </article>
+
+                <article class="glass-card reveal project-card">
+                    <div class="project-header">
+                        <span class="project-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 3v18h18M7 15l4-4 3 3 5-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </span>
+                        <div>
+                            <h3 lang="pt-br">Leitura Simplificada de DRE</h3>
+                            <h3 lang="en">Simplified P&amp;L (DRE) Reading</h3>
+                            <span class="project-tag" lang="pt-br">Power BI · Financeiro · DAX</span>
+                            <span class="project-tag" lang="en">Power BI · Finance · DAX</span>
+                        </div>
+                    </div>
+                    <p lang="pt-br">Ferramenta que traduz o Demonstrativo de Resultado do Exercício em uma visualização clara e acessível, permitindo que gestores não-técnicos interpretem receitas, custos e margens sem depender de planilhas complexas.</p>
+                    <p lang="en">A tool that translates the P&amp;L statement (DRE) into a clear, accessible view, letting non-technical managers interpret revenue, costs, and margins without relying on complex spreadsheets.</p>
+                    <div class="project-embed">
+                        <iframe
+                            src="https://app.powerbi.com/view?r=eyJrIjoiZmYzN2NkY2YtMWMwZC00NTMzLWFlNzMtMzA5YzYxZGMyNGFiIiwidCI6IjAwZDZjODdkLTFmZmQtNGZiNi04OWEzLTY2MjExM2RlYTFlZCJ9"
+                            title="Dashboard de Leitura de DRE Simplificado"
+                            loading="lazy"
+                            allowfullscreen>
+                        </iframe>
+                    </div>
+                    <a class="btn btn-outline project-link" href="https://app.powerbi.com/view?r=eyJrIjoiZmYzN2NkY2YtMWMwZC00NTMzLWFlNzMtMzA5YzYxZGMyNGFiIiwidCI6IjAwZDZjODdkLTFmZmQtNGZiNi04OWEzLTY2MjExM2RlYTFlZCJ9" target="_blank" rel="noopener">
+                        <span lang="pt-br">Abrir em tela cheia ↗</span>
+                        <span lang="en">Open full screen ↗</span>
+                    </a>
+                </article>
+
+            </div>
+        </section>
+
+    </main>
+
+    <footer id="contact">
+        <div class="container">
+            <h2 style="font-size: 2.5rem; margin-bottom: 20px;">Curitiba, PR</h2>
+            <p style="color: var(--text-dim); margin-bottom: 8px;">gabrielrkempp@gmail.com</p>
+            <p style="color: var(--text-dim); margin-bottom: 30px;">(41) 99504-6032</p>
+            <button class="btn" lang="pt-br" onclick="copyMail()">Copiar E-mail</button><button class="btn" lang="en" onclick="copyMail()">Copy Email</button>
+            <p style="margin-top: 50px; font-size: 0.8rem; color: #444;">© <span id="year">2026</span> Gabriel Roberto Kempp. Built with Passion & Code.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Ano dinâmico no rodapé
+        document.getElementById('year').textContent = new Date().getFullYear();
+
+        // UX: Menu mobile (hamburguer)
+        (function () {
+            const toggle = document.getElementById('menuToggle');
+            const nav = document.getElementById('navLinks');
+            if (!toggle || !nav) return;
+
+            const closeMenu = () => {
+                nav.classList.remove('open');
+                toggle.setAttribute('aria-expanded', 'false');
+                toggle.setAttribute('aria-label', 'Abrir menu');
+            };
+            const openMenu = () => {
+                nav.classList.add('open');
+                toggle.setAttribute('aria-expanded', 'true');
+                toggle.setAttribute('aria-label', 'Fechar menu');
+            };
+
+            toggle.addEventListener('click', () => {
+                nav.classList.contains('open') ? closeMenu() : openMenu();
+            });
+            nav.querySelectorAll('a').forEach((link) => link.addEventListener('click', closeMenu));
+            window.addEventListener('resize', () => { if (window.innerWidth > 968) closeMenu(); });
+        })();
+
+        // UX: Scroll-spy — destaca o link da seção visível no menu
+        (function () {
+            const sections = document.querySelectorAll('main section[id], footer[id]');
+            const links = document.querySelectorAll('.nav-links a');
+            if (!sections.length || !links.length || !('IntersectionObserver' in window)) return;
+
+            const setActive = (id) => {
+                links.forEach((link) => {
+                    link.classList.toggle('active', link.getAttribute('href') === '#' + id);
+                });
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) setActive(entry.target.id);
+                });
+            }, { rootMargin: '-40% 0px -50% 0px', threshold: 0 });
+
+            sections.forEach((s) => observer.observe(s));
+        })();
+
+        // UX: Partículas de fundo — pequena rede de dados se movendo lentamente
+        (function () {
+            const canvas = document.getElementById('particle-canvas');
+            if (!canvas || !canvas.getContext) return;
+            const ctx = canvas.getContext('2d');
+            const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const isMobile = window.matchMedia('(max-width: 640px)').matches;
+
+            const accentHex = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#22d3ee';
+            const rgb = accentHex.replace('#', '').match(/.{1,2}/g).map((h) => parseInt(h, 16)).join(',');
+
+            let width, height, particles;
+            const linkDist = 130;
+            const speed = 0.22;
+
+            function resize() {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+            }
+
+            function createParticles() {
+                const density = isMobile ? 22000 : 15000;
+                const count = Math.min(70, Math.max(24, Math.floor((width * height) / density)));
+                particles = Array.from({ length: count }, () => ({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    vx: (Math.random() - 0.5) * speed,
+                    vy: (Math.random() - 0.5) * speed,
+                    r: Math.random() * 1.3 + 0.7
+                }));
+            }
+
+            function frame() {
+                ctx.clearRect(0, 0, width, height);
+
+                for (let i = 0; i < particles.length; i++) {
+                    const p = particles[i];
+                    if (!reduceMotion) {
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        if (p.x <= 0 || p.x >= width) p.vx *= -1;
+                        if (p.y <= 0 || p.y >= height) p.vy *= -1;
+                    }
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(${rgb}, 0.45)`;
+                    ctx.fill();
+
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const q = particles[j];
+                        const dx = p.x - q.x;
+                        const dy = p.y - q.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < linkDist) {
+                            ctx.beginPath();
+                            ctx.moveTo(p.x, p.y);
+                            ctx.lineTo(q.x, q.y);
+                            ctx.strokeStyle = `rgba(${rgb}, ${0.14 * (1 - dist / linkDist)})`;
+                            ctx.lineWidth = 1;
+                            ctx.stroke();
+                        }
+                    }
+                }
+                if (!reduceMotion) requestAnimationFrame(frame);
+            }
+
+            resize();
+            createParticles();
+            frame();
+
+            let resizeTimer;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => {
+                    resize();
+                    createParticles();
+                    if (reduceMotion) frame();
+                }, 200);
+            });
+        })();
+
+        // UX: Scroll Progress
+        window.addEventListener('scroll', () => {
+            const bar = document.getElementById('progress-bar');
+            const scroll = document.documentElement.scrollTop;
+            const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            bar.style.width = (scroll / height) * 100 + "%";
+        });
+
+        // UX: Copy Email
+        function copyMail() {
+            navigator.clipboard.writeText('gabrielrkempp@gmail.com');
+            const toast = document.getElementById('toast');
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 2500);
+        }
+
+        // Language Switcher
+        function setLang(lang) {
+            const [ptBtn, enBtn] = document.querySelectorAll('.lang-btn');
+            const isEn = lang === 'en';
+            document.body.classList.toggle('en-active', isEn);
+            ptBtn.classList.toggle('active', !isEn);
+            enBtn.classList.toggle('active', isEn);
+            document.querySelectorAll('.nav-links a[data-pt]').forEach((a) => {
+                a.textContent = isEn ? a.dataset.en : a.dataset.pt;
+            });
+        }
+
+        // UX: Inclinação 3D — apenas nos cards pequenos (Educação e Skills)
+        (function () {
+            const isTouch = window.matchMedia('(hover: none)').matches;
+            const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (isTouch || reduceMotion) return;
+            const maxTilt = 3.5; // graus, inclinação sutil
+
+            document.querySelectorAll('.card-tilt').forEach((card) => {
+                card.addEventListener('mousemove', (e) => {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    const rotateX = ((y - rect.height / 2) / (rect.height / 2)) * -maxTilt;
+                    const rotateY = ((x - rect.width / 2) / (rect.width / 2)) * maxTilt;
+                    card.style.setProperty('--rot-x', rotateX.toFixed(2) + 'deg');
+                    card.style.setProperty('--rot-y', rotateY.toFixed(2) + 'deg');
+                });
+                card.addEventListener('mouseleave', () => {
+                    card.style.setProperty('--rot-x', '0deg');
+                    card.style.setProperty('--rot-y', '0deg');
+                });
+            });
+        })();
+
+        // UX: Revelação suave dos elementos ao rolar a página
+        (function () {
+            const targets = document.querySelectorAll('.reveal');
+            if (!('IntersectionObserver' in window)) {
+                targets.forEach((el) => el.classList.add('visible'));
+                return;
+            }
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.15, rootMargin: '0px 0px -50px 0px' });
+            targets.forEach((el) => observer.observe(el));
+        })();
+    </script>
+</body>
+</html>
